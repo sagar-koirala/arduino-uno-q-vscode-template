@@ -1,0 +1,2 @@
+# This file ensures the assets folder is tracked by git even when empty.
+# You can place your application's static assets (images, html, css, etc.) here.

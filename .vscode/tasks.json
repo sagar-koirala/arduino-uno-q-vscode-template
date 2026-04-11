@@ -1,0 +1,177 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "UNO-Q: Setup SSH Connection",
+			"type": "process",
+			"isBackground": false,
+			"problemMatcher": [],
+			"windows": {
+				"command": "powershell",
+				"args": [
+					"-NoProfile",
+					"-ExecutionPolicy",
+					"Bypass",
+					"-File",
+					".vscode/setup.ps1"
+				]
+			},
+			"osx": {
+				"command": "bash",
+				"args": [
+					".vscode/setup.sh"
+				]
+			},
+			"linux": {
+				"command": "bash",
+				"args": [
+					".vscode/setup.sh"
+				]
+			}
+		},
+		{
+			"label": "UNO-Q: Deploy and Start App",
+			"dependsOn": [
+				"UNO-Q: Stop All Apps",
+				"UNO-Q: Deploy App (SCP)",
+				"UNO-Q: Start App (SSH)",
+				"UNO-Q: Monitor Python App Logs"
+			],
+			"dependsOrder": "sequence",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "UNO-Q: Stop All Apps",
+			"type": "process",
+			"hide": true,
+			"command": "ssh",
+			"args": [
+				"arduino@${config:arduino.ip}",
+				"for d in ~/ArduinoApps/*/; do arduino-app-cli app stop \"$d\" > /dev/null 2>&1; done"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "never"
+			}
+		},
+		{
+			"label": "UNO-Q: Deploy App (SCP)",
+			"type": "process",
+			"hide": true,
+			"command": "scp",
+			"args": [
+				"-r",
+				"app.yaml",
+				"assets",
+				"python",
+				"sketch",
+				"arduino@${config:arduino.ip}:~/ArduinoApps/${workspaceFolderBasename}/"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"clear": true
+			}
+		},
+		{
+			"label": "UNO-Q: Start App",
+			"dependsOn": [
+				"UNO-Q: Start App (SSH)",
+				"UNO-Q: Monitor Python App Logs"
+			],
+			"dependsOrder": "sequence",
+			"problemMatcher": []
+		},
+		{
+			"label": "UNO-Q: Start App (SSH)",
+			"type": "process",
+			"hide": true,
+			"command": "ssh",
+			"args": [
+				"-tt",
+				"arduino@${config:arduino.ip}",
+				"arduino-app-cli app restart ~/ArduinoApps/${workspaceFolderBasename}/"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "UNO-Q: Monitor Python App Logs",
+			"type": "process",
+			"command": "ssh",
+			"args": [
+				"-tt",
+				"arduino@${config:arduino.ip}",
+				"arduino-app-cli app logs ~/ArduinoApps/${workspaceFolderBasename}/ --follow"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"presentation": {
+				"panel": "dedicated",
+				"focus": true,
+				"clear": true
+			}
+		},
+		{
+			"label": "UNO-Q: Stop App",
+			"type": "process",
+			"command": "ssh",
+			"args": [
+				"-tt",
+				"arduino@${config:arduino.ip}",
+				"arduino-app-cli app stop ~/ArduinoApps/${workspaceFolderBasename}/"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "UNO-Q: Open SSH Terminal",
+			"type": "process",
+			"command": "ssh",
+			"args": [
+				"arduino@${config:arduino.ip}"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"presentation": {
+				"panel": "new",
+				"focus": true
+			}
+		},
+		{
+			"label": "UNO-Q: Pull App Changes (SCP)",
+			"type": "process",
+			"command": "scp",
+			"args": [
+				"-r",
+				"arduino@${config:arduino.ip}:~/ArduinoApps/${workspaceFolderBasename}/app.yaml",
+				"arduino@${config:arduino.ip}:~/ArduinoApps/${workspaceFolderBasename}/assets",
+				"arduino@${config:arduino.ip}:~/ArduinoApps/${workspaceFolderBasename}/python",
+				"arduino@${config:arduino.ip}:~/ArduinoApps/${workspaceFolderBasename}/sketch",
+				"${workspaceFolder}/"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"presentation": {
+				"panel": "shared",
+				"focus": true
+			}
+		}
+	]
+}
