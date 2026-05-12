@@ -23,11 +23,20 @@ fi
 
 # Test if passwordless authentication already works
 echo "Testing passwordless authentication to arduino@$IP..."
-if ssh -o BatchMode=yes -o ConnectTimeout=3 "arduino@$IP" exit 2>/dev/null; then
+TEST_OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=3 "arduino@$IP" exit 2>&1)
+
+if [ $? -eq 0 ]; then
     echo "✅ Passwordless SSH is already configured and working smoothly!"
 else
+    if echo "$TEST_OUT" | grep -q -E "Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED"; then
+        echo "⚠️ Host key mismatch detected (board was likely reflashed or IP reassigned)."
+        echo "Automatically clearing the old key from known_hosts..."
+        ssh-keygen -R "$IP"
+    fi
+
     echo "Password authentication required. Securely copying public key to the Arduino..."
     echo -e "\033[0;36m>>> PLEASE ENTER THE ARDUINO PASSWORD BELOW <<<\033[0m"
+    echo -e "\033[0;36m>>> (Say 'yes' first if prompted to continue connecting) <<<\033[0m"
     
     # Mac/Linux have ssh-copy-id built-in
     ssh-copy-id -i "$SSH_KEY.pub" "arduino@$IP"

@@ -31,11 +31,18 @@ if (-not (Test-Path $sshKey)) {
 
 # Test if passwordless authentication already works
 Write-Host "Testing passwordless authentication to arduino@$ip..."
-$null = ssh -o BatchMode=yes -o ConnectTimeout=3 "arduino@$ip" "exit" 2>&1
+$sshTest = ssh -o BatchMode=yes -o ConnectTimeout=3 "arduino@$ip" "exit" 2>&1
 
 if ($LASTEXITCODE -ne 0) {
+    if ($sshTest -match "Host key verification failed" -or $sshTest -match "REMOTE HOST IDENTIFICATION HAS CHANGED") {
+        Write-Host "⚠️ Host key mismatch detected (board was likely reflashed or IP reassigned)." -ForegroundColor Yellow
+        Write-Host "Automatically clearing the old key from known_hosts..." -ForegroundColor Yellow
+        ssh-keygen -R $ip
+    }
+
     Write-Host "Password authentication required. Securely copying public key to the Arduino..."
     Write-Host ">>> PLEASE ENTER THE ARDUINO PASSWORD BELOW <<<" -ForegroundColor Cyan
+    Write-Host ">>> (Say 'yes' first if prompted to continue connecting) <<<" -ForegroundColor Cyan
     
     $pubKey = Get-Content "$sshKey.pub"
     ssh "arduino@$ip" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$pubKey' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
